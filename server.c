@@ -54,9 +54,20 @@ int main(int argc, char ** argv){
         goto clean_up;
     }
 
-    struct sockaddr * addr;
-    socklen_t * addrlen;
-    int new_socket = accept(sockfd, addr, addrlen);
+    struct sockaddr addr;
+    socklen_t  addrlen = sizeof(addr);
+    int new_socket = accept(sockfd, &addr, &addrlen);
+
+    if (new_socket < 0 ){
+        printf("new socket failed \n");
+        goto clean_up;
+    }
+
+    char buffer[10];
+
+    read(new_socket,&buffer,10);
+
+    printf("%s", buffer);
 
 
     return 0;
@@ -64,5 +75,7 @@ int main(int argc, char ** argv){
 clean_up:
     if (sockfd)
         close(sockfd);
+    if (new_socket)
+        close(new_socket);
     return -1;
 }
