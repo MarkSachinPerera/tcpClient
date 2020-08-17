@@ -16,14 +16,27 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "include/helper.h"
+
+#define LOCALHOST "127.0.0.1"
+#define PORT_USE "9000"
+#define MAX_BUFFER_LEN 1024
+#define MAX_CLIENTS 5
+
+typedef struct connectionList {
+    int socket[MAX_CLIENTS];
+    int count;
+} connectionList;
 
 connectionList serverConnections;
+
+void * connection_handler(void *socketfd);
 
 int main(int argc, char ** argv){
 
     struct addrinfo info_input, *destiniation;
     int yes = 1;
+    serverConnections.count = 0;
+
 
     info_input.ai_family = AF_INET;
     info_input.ai_protocol = IPPROTO_TCP;
@@ -97,3 +110,48 @@ clean_up:
     return -1;
 }
 
+void * connection_handler(void *socketfd)
+{
+
+    int sock = *(int *)socketfd;
+    char buffer[MAX_BUFFER_LEN];
+    int err;
+    int connectionID = 0;
+    // char username[MAX_BUFFER_LEN];
+
+    if (serverConnections.count > 5)
+        return(0);
+    else
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            if (serverConnections.socket[i] == 0)
+            {
+                connectionID = i;
+                serverConnections.socket[i] = sock;
+                serverConnections.count++;
+            }
+        }
+    }
+    // get username
+    err = read(sock, &buffer, MAX_BUFFER_LEN);
+    // strncpy(username, buffer, MAX_BUFFER_LEN);
+
+    printf("New user connected: %s\n",buffer);
+
+    while ((err = read(sock, &buffer, MAX_BUFFER_LEN)) > 0)
+    {
+        printf("%s \n", buffer);
+    }
+
+    close(sock);
+    serverConnections.socket[connectionID] = 0;
+    serverConnections.count--;
+
+    if (err < 0)
+        printf("Error: Connection Dropped\n");
+    else
+        printf("Connection Closed\n");
+
+    return(0);
+}

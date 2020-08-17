@@ -13,14 +13,19 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <netdb.h>
-#include "include/helper.h"
+#include <unistd.h>
 
+#define LOCALHOST "127.0.0.1"
+#define PORT_USE "9000"
+#define MAX_BUFFER_LEN 1024
+#define MAX_CLIENTS 5
 
 int main(int argc, char **argv)
 {
 
     struct addrinfo info_input, *destination;
-
+    char buffer[MAX_BUFFER_LEN];
+    int err;
     /** TODO: Usage */
 
     info_input.ai_family = AF_INET;
@@ -44,14 +49,27 @@ int main(int argc, char **argv)
         goto clean_up;
     }
 
-    if (connect(sockfd, destination->ai_addr, destination->ai_addrlen) < 0){
+    if (connect(sockfd, destination->ai_addr, destination->ai_addrlen) < 0)
+    {
         printf("connect failed \n");
         goto clean_up;
     }
 
-    send(sockfd,"hiii",strlen("hiii"),0);
+    send(sockfd, "Mark", strlen("Mark"), 0);
 
+    while (1)
+    {
+        // err = read(sockfd, &buffer, MAX_BUFFER_LEN);
+        printf("Usage: [username] [Message] \n");
+        scanf("%s", buffer);
+        send(sockfd, &buffer, MAX_BUFFER_LEN, 0);
+    }
+    close(sockfd);
 
+    if (err < 0)
+        printf("Error: Connection Dropped\n");
+    else
+        printf("Connection Closed\n");
 
     return 0;
 
