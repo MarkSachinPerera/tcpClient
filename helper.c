@@ -5,7 +5,7 @@
  * 
  */
 
-#include "helper.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,9 +16,12 @@
 #include <netdb.h>
 #include <unistd.h>
 
+
+#include "include/helper.h"
+
 extern connectionList serverConnections;
 
-void *connection_handler(void *socketfd)
+void * connection_handler(void *socketfd)
 {
 
     int sock = *(int *)socketfd;

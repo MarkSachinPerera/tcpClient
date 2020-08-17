@@ -11,10 +11,10 @@
 #define MAX_BUFFER_LEN 1024
 #define MAX_CLIENTS 5
 
-typedef struct {
+typedef struct connectionList {
     int socket[MAX_CLIENTS];
     int count;
-}connectionList;
+} connectionList;
 
 int readFromSocket(int socket, char * buffer);
 

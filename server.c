@@ -16,7 +16,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "helper.h"
+#include "include/helper.h"
 
 connectionList serverConnections;
 
@@ -58,8 +58,9 @@ int main(int argc, char ** argv){
 
     struct sockaddr addr;
     socklen_t  addrlen = sizeof(addr);
+    int new_socket;
 
-    while(new_socket = accept(sockfd, &addr, &addrlen)){
+    while((new_socket = accept(sockfd, &addr, &addrlen)) > 0){
 
         if (new_socket < 0 ){
         printf("new socket failed \n");
@@ -68,7 +69,7 @@ int main(int argc, char ** argv){
 
         pthread_t thread;
 
-        if (pthread_create(& thread, NULL, connection_handler, (void *) new_socket) < 0)
+        if (pthread_create(& thread, NULL, connection_handler, & new_socket) < 0)
         {
             printf("Thread Failed\n");
             close(new_socket);
@@ -95,3 +96,4 @@ clean_up:
         close(new_socket);
     return -1;
 }
+
