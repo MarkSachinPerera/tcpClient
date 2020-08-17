@@ -13,9 +13,8 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <netdb.h>
+#include "helper.h"
 
-#define LOCALHOST "127.0.0.1"
-#define PORT_USE "9000"
 
 int main(int argc, char **argv)
 {

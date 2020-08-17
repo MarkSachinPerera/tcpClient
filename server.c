@@ -14,9 +14,11 @@
 #include <assert.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <pthread.h>
 
-#define LOCALHOST "127.0.0.1"
-#define PORT_USE "9000"
+#include "helper.h"
+
+connectionList serverConnections;
 
 int main(int argc, char ** argv){
 
@@ -56,12 +58,26 @@ int main(int argc, char ** argv){
 
     struct sockaddr addr;
     socklen_t  addrlen = sizeof(addr);
-    int new_socket = accept(sockfd, &addr, &addrlen);
 
-    if (new_socket < 0 ){
+    while(new_socket = accept(sockfd, &addr, &addrlen)){
+
+        if (new_socket < 0 ){
         printf("new socket failed \n");
         goto clean_up;
+        }
+
+        pthread_t thread;
+
+        if (pthread_create(& thread, NULL, connection_handler, (void *) new_socket) < 0)
+        {
+            printf("Thread Failed\n");
+            close(new_socket);
+        }
+
+
     }
+
+    
 
     char buffer[10];
 
