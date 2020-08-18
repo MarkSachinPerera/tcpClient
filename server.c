@@ -16,38 +16,41 @@
 #include <unistd.h>
 #include <pthread.h>
 
-
 #define LOCALHOST "127.0.0.1"
 #define PORT_USE "9000"
 #define MAX_BUFFER_LEN 1024
 #define MAX_CLIENTS 5
+#define CLOSE_BRACKET ": "
 
-typedef struct connectionList {
+typedef struct connectionList
+{
     int socket[MAX_CLIENTS];
     int count;
 } connectionList;
 
 connectionList serverConnections;
 
-void * connection_handler(void *socketfd);
+void *connection_handler(void *socketfd);
 
-int main(int argc, char ** argv){
+int main(int argc, char **argv)
+{
 
     struct addrinfo info_input, *destiniation;
     int yes = 1;
     serverConnections.count = 0;
-
+    pthread_t thread;
 
     info_input.ai_family = AF_INET;
     info_input.ai_protocol = IPPROTO_TCP;
     info_input.ai_flags = AI_PASSIVE;
     info_input.ai_socktype = SOCK_STREAM;
 
-    getaddrinfo(LOCALHOST,PORT_USE,&info_input, &destiniation);
+    getaddrinfo(LOCALHOST, PORT_USE, &info_input, &destiniation);
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (sockfd < 0){
+    if (sockfd < 0)
+    {
         printf("Server sockfd failed \n");
         goto clean_up;
     }
@@ -55,50 +58,48 @@ int main(int argc, char ** argv){
     /** This is to prevent extra errors */
     int sockfd_opt = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
-    if (sockfd_opt < 0){
+    if (sockfd_opt < 0)
+    {
         printf("Server setsockopt failed \n");
         goto clean_up;
     }
 
-    if (bind(sockfd, destiniation->ai_addr, destiniation->ai_addrlen)){
+    if (bind(sockfd, destiniation->ai_addr, destiniation->ai_addrlen))
+    {
         printf("Server failed bind \n");
     }
 
-    if (listen(sockfd,2) < 0){
+    if (listen(sockfd, 2) < 0)
+    {
         printf("Server listen failed");
         goto clean_up;
     }
 
     struct sockaddr addr;
-    socklen_t  addrlen = sizeof(addr);
+    socklen_t addrlen = sizeof(addr);
     int new_socket;
 
-    while((new_socket = accept(sockfd, &addr, &addrlen)) > 0){
+    while ((new_socket = accept(sockfd, &addr, &addrlen)) > 0)
+    {
 
-        if (new_socket < 0 ){
-        printf("new socket failed \n");
-        goto clean_up;
+        if (new_socket < 0)
+        {
+            printf("new socket failed \n");
+            goto clean_up;
         }
 
-        pthread_t thread;
-
-        if (pthread_create(& thread, NULL, connection_handler, & new_socket) < 0)
+        if (pthread_create(&thread, NULL, connection_handler, &new_socket) < 0)
         {
             printf("Thread Failed\n");
             close(new_socket);
         }
-
-
     }
-
-    
 
     char buffer[10];
 
-    read(new_socket,&buffer,10);
+    read(new_socket, &buffer, 10);
 
     printf("%s", buffer);
-
 
     return 0;
 
@@ -110,17 +111,17 @@ clean_up:
     return -1;
 }
 
-void * connection_handler(void *socketfd)
+void *connection_handler(void *socketfd)
 {
 
     int sock = *(int *)socketfd;
     char buffer[MAX_BUFFER_LEN];
     int err;
     int connectionID = 0;
-    // char username[MAX_BUFFER_LEN];
+    char username[MAX_BUFFER_LEN];
 
     if (serverConnections.count > 5)
-        return(0);
+        return (0);
     else
     {
         for (int i = 0; i < 5; i++)
@@ -135,13 +136,24 @@ void * connection_handler(void *socketfd)
     }
     // get username
     err = read(sock, &buffer, MAX_BUFFER_LEN);
-    // strncpy(username, buffer, MAX_BUFFER_LEN);
+    memset(username, 0, MAX_BUFFER_LEN);
+    strncpy(username, buffer, strlen(buffer));
+    strncat(username, CLOSE_BRACKET, strlen(CLOSE_BRACKET) + 1);
 
-    printf("New user connected: %s\n",buffer);
+    printf("New user connected: %s\n", buffer);
 
     while ((err = read(sock, &buffer, MAX_BUFFER_LEN)) > 0)
     {
-        printf("%s \n", buffer);
+
+        printf("%s", buffer);
+        for (int i = 0; i < MAX_CLIENTS; i++)
+        {
+            if (i != connectionID){
+                send(sock, &username, MAX_BUFFER_LEN, 0);
+                send(sock, &buffer, MAX_BUFFER_LEN, 0);
+            }
+                
+        }
     }
 
     close(sock);
@@ -153,5 +165,5 @@ void * connection_handler(void *socketfd)
     else
         printf("Connection Closed\n");
 
-    return(0);
+    return (0);
 }

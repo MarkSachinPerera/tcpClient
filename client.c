@@ -14,19 +14,30 @@
 #include <assert.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define LOCALHOST "127.0.0.1"
 #define PORT_USE "9000"
 #define MAX_BUFFER_LEN 1024
 #define MAX_CLIENTS 5
 
+int communicate(int socket);
+void *recieve(void *socket);
+
 int main(int argc, char **argv)
 {
 
     struct addrinfo info_input, *destination;
-    char buffer[MAX_BUFFER_LEN];
-    int err;
-    /** TODO: Usage */
+    char username[MAX_BUFFER_LEN];
+    pthread_t thread;
+
+    if (argc != 2)
+    {
+        printf("Usage: ./client [username]\n");
+        return (0);
+    }
+
+    strncpy(username, argv[1], strlen(argv[1]));
 
     info_input.ai_family = AF_INET;
     info_input.ai_socktype = SOCK_STREAM;
@@ -55,25 +66,76 @@ int main(int argc, char **argv)
         goto clean_up;
     }
 
-    send(sockfd, "Mark", strlen("Mark"), 0);
+    send(sockfd, username, strlen(username), 0);
+
+    if (pthread_create(&thread, NULL, recieve, &sockfd) < 0)
+    {
+        printf("Error: Thread Create Failed \n");
+        goto clean_up;
+    }
+
+    if (communicate(sockfd))
+        goto clean_up;
+
+clean_up:
+    if (sockfd)
+        close(sockfd);
+    return -1;
+}
+
+void *recieve(void *socket)
+{
+    char *buffer = NULL;
+    int err;
+    int sockfd = *(int *)socket;
+    buffer = malloc(MAX_BUFFER_LEN * sizeof(char));
 
     while (1)
     {
-        // err = read(sockfd, &buffer, MAX_BUFFER_LEN);
-        printf("Usage: [username] [Message] \n");
-        scanf("%s", buffer);
-        send(sockfd, &buffer, MAX_BUFFER_LEN, 0);
+        err = read(sockfd, &buffer, MAX_BUFFER_LEN);
+        if (err <= 0)
+        {
+            printf("Connection Closed\n");
+            break;
+        }
+        printf("%s\n", buffer);
     }
-    close(sockfd);
+    free(buffer);
 
-    if (err < 0)
-        printf("Error: Connection Dropped\n");
-    else
-        printf("Connection Closed\n");
+    return (0);
+}
 
-    return 0;
+int communicate(int socket)
+{
 
-clean_up:
-    /** TODO: handle all fail cases*/
-    return -1;
+    char *buffer = NULL;
+    int err;
+    size_t buffersize = MAX_BUFFER_LEN;
+    size_t bufferCount = 0;
+
+    buffer = malloc(MAX_BUFFER_LEN * sizeof(char));
+    printf("> [Message] \n");
+    while (1)
+    {
+
+        printf("> ");
+        bufferCount = getline(&buffer, &buffersize, stdin);
+        if (bufferCount != 0)
+        {
+            err = send(socket, buffer, bufferCount, 0);
+            memset(buffer, 0, MAX_BUFFER_LEN);
+
+            if (err <= 0)
+            {
+                printf("Connection Closed\n");
+                break;
+            }
+        }
+    }
+    if (socket)
+        close(socket);
+
+    free(buffer);
+
+    return (err);
 }
