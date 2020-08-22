@@ -73,8 +73,6 @@ int main(int argc, char **argv)
 
     int countRecieved = read(sockfd, buffer, MAX_BUFFER_LEN);
 
-    // printf("%d\n",countRecieved);
-
     if (countRecieved > 1){
         printf("%s\n", buffer);
     }else{
@@ -122,10 +120,12 @@ void *recieve(void *socket)
             break;
         }
 
-        printf("%s %s\n", username, text);
+        printf("%s %s", username, text);
+        printf("> ");
+        fflush(stdout);
         memset(username, 0, MAX_BUFFER_LEN);
         memset(text, 0, MAX_BUFFER_LEN);
-        printf("> ");
+        
     }
     if (text)
         free(text);
@@ -150,7 +150,6 @@ int communicate(int socket)
 
         printf("> ");
         bufferCount = getline(&buffer, &buffersize, stdin);
-        // printf("%ld",bufferCount);
         if (bufferCount > 1)
         {
             err = send(socket, buffer, bufferCount, 0);

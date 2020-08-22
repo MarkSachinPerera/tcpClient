@@ -146,7 +146,6 @@ void *connection_handler(void *socketfd)
     while ((err = read(sock, &buffer, MAX_BUFFER_LEN)) > 0)
     {
 
-        printf("> %s\n", buffer);
         for (int i = 0; i < serverConnections.count; i++)
         {
             if (i != connectionID)
