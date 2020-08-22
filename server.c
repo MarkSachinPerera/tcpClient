@@ -21,6 +21,7 @@
 #define MAX_BUFFER_LEN 1024
 #define MAX_CLIENTS 5
 #define CLOSE_BRACKET ": "
+#define CONNECTION_STATUS "Connection Accepted"
 
 typedef struct connectionList
 {
@@ -95,12 +96,6 @@ int main(int argc, char **argv)
         }
     }
 
-    char buffer[10];
-
-    read(new_socket, &buffer, 10);
-
-    printf("%s", buffer);
-
     return 0;
 
 clean_up:
@@ -121,16 +116,20 @@ void *connection_handler(void *socketfd)
     char username[MAX_BUFFER_LEN];
 
     if (serverConnections.count > 5)
+    {
+        printf("Connection refused. Max connections reached");
         return (0);
+    }
     else
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < MAX_CLIENTS; i++)
         {
             if (serverConnections.socket[i] == 0)
             {
                 connectionID = i;
                 serverConnections.socket[i] = sock;
                 serverConnections.count++;
+                break;
             }
         }
     }
@@ -142,18 +141,21 @@ void *connection_handler(void *socketfd)
 
     printf("New user connected: %s\n", buffer);
 
+    send(sock, CONNECTION_STATUS, MAX_BUFFER_LEN, 0);
+
     while ((err = read(sock, &buffer, MAX_BUFFER_LEN)) > 0)
     {
 
-        printf("%s", buffer);
-        for (int i = 0; i < MAX_CLIENTS; i++)
+        printf("> %s\n", buffer);
+        for (int i = 0; i < serverConnections.count; i++)
         {
-            if (i != connectionID){
-                send(sock, &username, MAX_BUFFER_LEN, 0);
-                send(sock, &buffer, MAX_BUFFER_LEN, 0);
+            if (i != connectionID)
+            {
+                send(serverConnections.socket[i], &username, MAX_BUFFER_LEN, 0);
+                send(serverConnections.socket[i], &buffer, MAX_BUFFER_LEN, 0);
             }
-                
         }
+        memset(buffer, 0, MAX_BUFFER_LEN);
     }
 
     close(sock);

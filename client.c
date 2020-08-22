@@ -30,6 +30,7 @@ int main(int argc, char **argv)
     struct addrinfo info_input, *destination;
     char username[MAX_BUFFER_LEN];
     pthread_t thread;
+    char buffer[MAX_BUFFER_LEN];
 
     if (argc != 2)
     {
@@ -38,6 +39,8 @@ int main(int argc, char **argv)
     }
 
     strncpy(username, argv[1], strlen(argv[1]));
+
+    username[strlen(argv[1])] = '\0';
 
     info_input.ai_family = AF_INET;
     info_input.ai_socktype = SOCK_STREAM;
@@ -68,6 +71,16 @@ int main(int argc, char **argv)
 
     send(sockfd, username, strlen(username), 0);
 
+    int countRecieved = read(sockfd, buffer, MAX_BUFFER_LEN);
+
+    // printf("%d\n",countRecieved);
+
+    if (countRecieved > 1){
+        printf("%s\n", buffer);
+    }else{
+        goto clean_up;
+    }
+
     if (pthread_create(&thread, NULL, recieve, &sockfd) < 0)
     {
         printf("Error: Thread Create Failed \n");
@@ -85,22 +98,39 @@ clean_up:
 
 void *recieve(void *socket)
 {
-    char *buffer = NULL;
+    char *username = NULL;
+    char *text = NULL;
     int err;
     int sockfd = *(int *)socket;
-    buffer = malloc(MAX_BUFFER_LEN * sizeof(char));
+    username = malloc(MAX_BUFFER_LEN * sizeof(char));
+    text = malloc(MAX_BUFFER_LEN * sizeof(char));
+    memset(username, 0, MAX_BUFFER_LEN);
+    memset(text, 0, MAX_BUFFER_LEN);
 
     while (1)
     {
-        err = read(sockfd, &buffer, MAX_BUFFER_LEN);
+        err = read(sockfd, username, MAX_BUFFER_LEN);
         if (err <= 0)
         {
             printf("Connection Closed\n");
             break;
         }
-        printf("%s\n", buffer);
+        err = read(sockfd, text, MAX_BUFFER_LEN);
+        if (err <= 0)
+        {
+            printf("Connection Closed\n");
+            break;
+        }
+
+        printf("%s %s\n", username, text);
+        memset(username, 0, MAX_BUFFER_LEN);
+        memset(text, 0, MAX_BUFFER_LEN);
+        printf("> ");
     }
-    free(buffer);
+    if (text)
+        free(text);
+    if (username)
+        free(username);
 
     return (0);
 }
@@ -120,7 +150,8 @@ int communicate(int socket)
 
         printf("> ");
         bufferCount = getline(&buffer, &buffersize, stdin);
-        if (bufferCount != 0)
+        // printf("%ld",bufferCount);
+        if (bufferCount > 1)
         {
             err = send(socket, buffer, bufferCount, 0);
             memset(buffer, 0, MAX_BUFFER_LEN);
@@ -134,8 +165,8 @@ int communicate(int socket)
     }
     if (socket)
         close(socket);
-
-    free(buffer);
+    if (buffer)
+        free(buffer);
 
     return (err);
 }
